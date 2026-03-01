@@ -51,7 +51,7 @@ class FavoritesModel extends ChangeNotifier {
     });
 
     _audioPlayer.onPositionChanged.listen((position) {
-      if (_transitioning) return; // <-- ignore all events during swap
+      if (_transitioning) return;
       if (_current != -1 && _totalDuration.inMilliseconds > 0 && position.inMilliseconds > 0) {
         _sliderPositions[_current] =
             position.inMilliseconds / _totalDuration.inMilliseconds;
