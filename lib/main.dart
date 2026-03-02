@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models/folders_model.dart';
-import 'models/favorites_model.dart';
 import 'pages/home_page.dart';
 
 void main() {
@@ -34,13 +33,10 @@ class MyApp extends StatelessWidget {
           scrolledUnderElevation: 0,
         ),
       ),
-      home: MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => FoldersModel()),
-          ChangeNotifierProvider(create: (_) => FavoritesModel()),
-        ],
-        child: const HomePage(),
-      ),
+      home: ChangeNotifierProvider(
+      create: (_) => FoldersModel(),
+      child: const HomePage(),
+    ),
     );
   }
 }

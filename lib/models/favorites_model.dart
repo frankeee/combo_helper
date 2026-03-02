@@ -7,7 +7,7 @@ import 'dart:convert';
 
 class FavoritesModel extends ChangeNotifier {
   final AudioPlayer _audioPlayer = AudioPlayer();
-  final List<(String?, String?)> _favorites = [];
+  final List<(int, String?, String?)> _favorites = [];
   int _current = -1;
   int get current => _current;
   int _editingIndex = -1;
@@ -16,15 +16,16 @@ class FavoritesModel extends ChangeNotifier {
   final Map<int, double> _sliderPositions = {};
   Duration _totalDuration = Duration.zero;
   bool _transitioning = false;
+  final int folderIndex;
 
 
 
-  FavoritesModel() {
-    _loadFavorites();
+  FavoritesModel({required this.folderIndex}) {
+    _loadFavorites(folderIndex);
     _initAudioListeners();
   }
 
-  Future<void> _loadFavorites() async {
+  Future<void> _loadFavorites(int targetFolderId) async {
     if (_isLoaded) return;
     
     try {
@@ -35,7 +36,10 @@ class FavoritesModel extends ChangeNotifier {
         final List<dynamic> decoded = jsonDecode(favoritesJson);
         _favorites.clear();
         for (var item in decoded) {
-          _favorites.add((item['path'] as String?, item['name'] as String?));
+          var favorite = (item['folderId'] as int,item['path'] as String?, item['name'] as String?);
+          if(favorite.$1 == targetFolderId){
+            _favorites.add(favorite);
+          }
         }
         _isLoaded = true;
         notifyListeners();
@@ -71,10 +75,30 @@ class FavoritesModel extends ChangeNotifier {
   Future<void> _saveFavorites() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final List<Map<String, String?>> favoritesList = _favorites
-          .map((item) => {'path': item.$1, 'name': item.$2})
+
+      // Load ALL existing favorites (all folders)
+      List<Map<String, Object?>> allFavorites = [];
+      final String? existingJson = prefs.getString('favorites');
+      if (existingJson != null) {
+        final List<dynamic> decoded = jsonDecode(existingJson);
+        // Keep entries that belong to OTHER folders
+        allFavorites = decoded
+            .where((item) => item['folderId'] != folderIndex)
+            .map<Map<String, Object?>>((item) => {
+                  'folderId': item['folderId'],
+                  'path': item['path'],
+                  'name': item['name'],
+                })
+            .toList();
+      }
+
+      // Add THIS folder's current entries
+      final thisFolderItems = _favorites
+          .map((item) => {'folderId': item.$1, 'path': item.$2, 'name': item.$3})
           .toList();
-      await prefs.setString('favorites', jsonEncode(favoritesList));
+      allFavorites.addAll(thisFolderItems);
+
+      await prefs.setString('favorites', jsonEncode(allFavorites));
     } catch (e) {
       debugPrint('Error saving favorites: $e');
     }
@@ -83,6 +107,26 @@ class FavoritesModel extends ChangeNotifier {
   void setCurrent(int index) {
     _current = index;
     notifyListeners();
+  }
+
+  static Future<void> addFavoriteDirectly(int folderId, String path, String name) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<Map<String, Object?>> allFavorites = [];
+      final String? existingJson = prefs.getString('favorites');
+      if (existingJson != null) {
+        final List<dynamic> decoded = jsonDecode(existingJson);
+        allFavorites = decoded.map<Map<String, Object?>>((item) => {
+          'folderId': item['folderId'],
+          'path': item['path'],
+          'name': item['name'],
+        }).toList();
+      }
+      allFavorites.add({'folderId': folderId, 'path': path, 'name': name});
+      await prefs.setString('favorites', jsonEncode(allFavorites));
+    } catch (e) {
+      debugPrint('Error saving favorite: $e');
+    }
   }
 
   double getSliderPosition(int index) => _sliderPositions[index] ?? 0.0;
@@ -97,9 +141,9 @@ class FavoritesModel extends ChangeNotifier {
     notifyListeners();
   }
   
-  List<(String?, String?)> get favorites => _favorites;
+  List<(int, String?, String?)> get favorites => _favorites;
 
-  void addFavorite((String?, String?) par) {
+  void addFavorite((int folderIndex,String?, String?) par) {
     _favorites.add(par);
     _saveFavorites();
     notifyListeners();
@@ -116,14 +160,14 @@ class FavoritesModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void renameFavorite((String?, String?) par, String newName){
+  void renameFavorite((int, String?, String?) par, String newName){
 
-    var (filePath, fileName) = par;
+    var (folderId, filePath, fileName) = par;
 
     if (filePath != null && fileName != null ){
       final index = _favorites.indexOf(par);
       if (index >= 0){
-        var newPair = (filePath, newName);
+        var newPair = (folderId, filePath, newName);
         _favorites[index] = newPair;
         _saveFavorites();
         notifyListeners();

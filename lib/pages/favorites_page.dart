@@ -50,10 +50,14 @@ String _typeLabel(_FileType t) => switch (t) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 class FavoritesPage extends StatelessWidget {
-  const FavoritesPage({super.key});
-
+  const FavoritesPage({
+                        super.key,
+                        required this.folderIndex
+                      });
+  final int folderIndex;
   @override
   Widget build(BuildContext context) {
+
     final model = context.watch<FavoritesModel>();
 
     if (model.favorites.isEmpty) {
@@ -92,13 +96,14 @@ class FavoritesPage extends StatelessWidget {
         child: child,
       ),
       itemBuilder: (context, index) {
-        final (filePath, fileName) = model.favorites[index];
+        final (folderId, filePath, fileName) = model.favorites[index];
         return _FavoriteCard(
           key: ValueKey('$filePath$fileName$index'),
           filePath: filePath!,
           fileName: fileName!,
           index: index,
           model: model,
+          folderId:folderId,
         );
       },
     );
@@ -114,12 +119,14 @@ class _FavoriteCard extends StatelessWidget {
     required this.fileName,
     required this.index,
     required this.model,
+    required this.folderId
   });
 
   final String filePath;
   final String fileName;
   final int index;
   final FavoritesModel model;
+  final folderId;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +173,7 @@ class _FavoriteCard extends StatelessWidget {
                             index: index,
                             model: model,
                             isEditing: isEditing,
+                            folderId: folderId,
                           )),
                           const SizedBox(width: 6),
                           _TypeBadge(type: type, color: color),
@@ -245,6 +253,7 @@ class _NameSection extends StatelessWidget {
     required this.index,
     required this.model,
     required this.isEditing,
+    required this.folderId,
   });
 
   final String fileName;
@@ -252,6 +261,7 @@ class _NameSection extends StatelessWidget {
   final int index;
   final FavoritesModel model;
   final bool isEditing;
+  final folderId;
 
   @override
   Widget build(BuildContext context) {
@@ -267,7 +277,7 @@ class _NameSection extends StatelessWidget {
         ),
         onSubmitted: (newName) {
           if (newName.isNotEmpty) {
-            model.renameFavorite((filePath, fileName), newName);
+            model.renameFavorite((folderId,filePath, fileName), newName);
           }
           model.setEditingIndex(-1);
         },

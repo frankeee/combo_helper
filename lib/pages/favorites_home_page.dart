@@ -2,63 +2,26 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'dart:async';
 import '../models/favorites_model.dart';
 import 'favorites_page.dart';
 import 'package:path_provider/path_provider.dart';
 
 class FavoritesHomePage extends StatefulWidget {
-  const FavoritesHomePage({super.key});
+  const FavoritesHomePage({
+                            super.key,
+                            required this.folderIndex,
+                          });
 
+  final int folderIndex;
   @override
-  State<FavoritesHomePage> createState() => _MyHomePageContentState();
+  State<FavoritesHomePage> createState() => _MyHomePageContentState(folderIndex:folderIndex);
 }
 
 class _MyHomePageContentState extends State<FavoritesHomePage> {
-  late StreamSubscription _intentSub;
-  // ignore: unused_field
-  List<SharedMediaFile> _pendingSharedFiles = [];
+  _MyHomePageContentState({required this.folderIndex});
 
-  @override
-  void initState() {
-    super.initState();
-
-    ReceiveSharingIntent.instance
-        .getInitialMedia()
-        .then((List<SharedMediaFile> value) {
-      if (value.isNotEmpty) {
-        setState(() => _pendingSharedFiles = value);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _handleSharedFiles(value);
-        });
-      }
-    });
-
-    _intentSub = ReceiveSharingIntent.instance.getMediaStream().listen(
-      (List<SharedMediaFile> value) {
-        if (value.isNotEmpty) _handleSharedFiles(value);
-      },
-      onError: (err) => debugPrint("Error receiving shared files: $err"),
-    );
-  }
-
-  Future<void> _handleSharedFiles(List<SharedMediaFile> files) async {
-    for (var file in files) {
-      debugPrint("Shared file path: ${file.path}");
-      String? customName = await _showNameDialog(context);
-      if (customName != null && customName.isNotEmpty && mounted) {
-        context.read<FavoritesModel>().addFavorite((file.path, customName));
-      }
-    }
-    ReceiveSharingIntent.instance.reset();
-  }
-
-  @override
-  void dispose() {
-    _intentSub.cancel();
-    super.dispose();
-  }
+  final int folderIndex;
 
   Future<(String, String)?> _showTextInputDialog(BuildContext context) async {
     final nameController = TextEditingController();
@@ -182,7 +145,7 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
           ),
         ],
       ),
-      body: const FavoritesPage(),
+      body: FavoritesPage(folderIndex:folderIndex),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _onAddPressed(context),
         elevation: 4,
@@ -267,7 +230,7 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
             '${dir.path}/${name}_${DateTime.now().millisecondsSinceEpoch}.txt';
         await File(filePath).writeAsString(content);
         // ignore: use_build_context_synchronously
-        context.read<FavoritesModel>().addFavorite((filePath, name));
+        context.read<FavoritesModel>().addFavorite((this.folderIndex, filePath, name));
       }
     } else {
       try {
@@ -282,7 +245,7 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
             // ignore: use_build_context_synchronously
             context
                 .read<FavoritesModel>()
-                .addFavorite((filePath, customName));
+                .addFavorite((this.folderIndex, filePath, customName));
             debugPrint(
                 'Selected file: $fileName at $filePath with name: $customName');
           }

@@ -20,7 +20,6 @@ class FoldersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final model = context.watch<FoldersModel>();
-    final favoritesModel = context.read<FavoritesModel>();
 
     if (model.folders.isEmpty) {
       return Center(
@@ -88,7 +87,6 @@ class FoldersPage extends StatelessWidget {
           fileName: fileName!,
           index: index,
           model: model,
-          favoritesModel: favoritesModel,
         );
       },
     );
@@ -104,14 +102,12 @@ class _FolderCard extends StatelessWidget {
     required this.fileName,
     required this.index,
     required this.model,
-    required this.favoritesModel,
   });
 
   final int folderId;
   final String fileName;
   final int index;
   final FoldersModel model;
-  final FavoritesModel favoritesModel;
 
   // Cycle through warm accent tones for the left stripe
   static const _stripeColors = [
@@ -127,7 +123,6 @@ class _FolderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final stripeColor = _stripeColors[index % _stripeColors.length];
     final bool isEditing = model.editingIndex == index;
-    final favoritesModel = context.read<FavoritesModel>();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -138,13 +133,12 @@ class _FolderCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ChangeNotifierProvider.value(
-                  value: favoritesModel,
-                  child: const FavoritesHomePage(),
+                builder: (_) => ChangeNotifierProvider(
+                  create: (_) => FavoritesModel(folderIndex: folderId),
+                  child: FavoritesHomePage(folderIndex : folderId),
                 ),
               ),
             );

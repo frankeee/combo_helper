@@ -44,12 +44,56 @@ class _MyHomePageContentState extends State<HomePage> {
   Future<void> _handleSharedFiles(List<SharedMediaFile> files) async {
     for (var file in files) {
       debugPrint("Shared file path: ${file.path}");
+      // ignore: use_build_context_synchronously
+      final folderId = await _showFolderPickerDialog(context);
+      if (folderId == null) continue;
+
+      // ignore: use_build_context_synchronously
       String? customName = await _showNameDialog(context);
-      if (customName != null && customName.isNotEmpty && mounted) {
-        context.read<FavoritesModel>().addFavorite((file.path, customName));
+      if (customName != null && customName.isNotEmpty) {
+        await FavoritesModel.addFavoriteDirectly(folderId, file.path, customName);
       }
     }
     ReceiveSharingIntent.instance.reset();
+  }
+
+  Future<int?> _showFolderPickerDialog(BuildContext context) async {
+    final model = context.read<FoldersModel>();
+
+    return showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose a Folder'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        content: model.folders.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('No folders yet. Create a folder first.'),
+              )
+            : SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: model.folders.length,
+                  itemBuilder: (context, index) {
+                    final (folderId, folderName) = model.folders[index];
+                    return ListTile(
+                      leading: const Icon(Icons.folder_rounded, color: Color(0xFFD4A574)),
+                      title: Text(folderName ?? 'Unnamed'),
+                      onTap: () => Navigator.pop(context, folderId),
+                    );
+                  },
+                ),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
