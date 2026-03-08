@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -65,7 +67,42 @@ class FoldersModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeFolder((int, String?) par) {
+  Future<void> removeFolder((int, String?) par) async {
+    int targetFolderId = par.$1;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? favoritesJson = prefs.getString('favorites');
+
+      if (favoritesJson != null) {
+        final List<dynamic> decoded = jsonDecode(favoritesJson);
+
+        // Delete files belonging to this folder from disk
+        for (var item in decoded) {
+          if (item['folderId'] == targetFolderId) {
+            final filePath = item['path'] as String?;
+            if (filePath != null) {
+              final file = File(filePath);
+              if (await file.exists()) await file.delete();
+            }
+          }
+        }
+
+        // Keep only favorites from OTHER folders, serialized correctly
+        final remaining = decoded
+            .where((item) => item['folderId'] != targetFolderId)
+            .map<Map<String, Object?>>((item) => {
+                  'folderId': item['folderId'],
+                  'path': item['path'],
+                  'name': item['name'],
+                })
+            .toList();
+
+        await prefs.setString('favorites', jsonEncode(remaining));
+      }
+    } catch (e) {
+      debugPrint('Error deleting folder: $e');
+    }
+
     _folders.remove(par);
     _saveFolders();
     notifyListeners();
