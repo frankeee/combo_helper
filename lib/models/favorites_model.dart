@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 
 class FavoritesModel extends ChangeNotifier {
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -17,8 +20,7 @@ class FavoritesModel extends ChangeNotifier {
   Duration _totalDuration = Duration.zero;
   bool _transitioning = false;
   final int folderIndex;
-
-
+  final Map<String, Duration> _audioDurations = {};
 
   FavoritesModel({required this.folderIndex}) {
     _loadFavorites(folderIndex);
@@ -104,6 +106,24 @@ class FavoritesModel extends ChangeNotifier {
     }
   }
 
+  Future<Duration> getAudioDuration(String filePath) async {
+    if (_audioDurations.containsKey(filePath)) {
+      return _audioDurations[filePath]!;
+    }
+
+    final player = AudioPlayer();
+    try {
+      await player.setSourceDeviceFile(filePath);
+      final duration = await player.getDuration() ?? Duration.zero;
+      _audioDurations[filePath] = duration;
+      return duration;
+    } catch (_) {
+      return Duration.zero;
+    } finally {
+      await player.dispose();
+    }
+  }
+
   void setCurrent(int index) {
     _current = index;
     notifyListeners();
@@ -122,7 +142,15 @@ class FavoritesModel extends ChangeNotifier {
           'name': item['name'],
         }).toList();
       }
-      allFavorites.add({'folderId': folderId, 'path': path, 'name': name});
+
+      final sourceFile = File(path);
+      if (!await sourceFile.exists()) return;
+      final appDir = await getApplicationDocumentsDirectory();
+      final ext = p.extension(path);
+      final destPath = p.join(appDir.path, '$name$ext');
+      await sourceFile.copy(destPath);
+
+      allFavorites.add({'folderId': folderId, 'path': destPath, 'name': name});
       await prefs.setString('favorites', jsonEncode(allFavorites));
     } catch (e) {
       debugPrint('Error saving favorite: $e');
@@ -143,14 +171,22 @@ class FavoritesModel extends ChangeNotifier {
   
   List<(int, String?, String?)> get favorites => _favorites;
 
-  void addFavorite((int folderIndex,String?, String?) par) {
+  void addFavorite((int, String?, String?) par) {
     _favorites.add(par);
     _saveFavorites();
     notifyListeners();
   }
 
-  void removeFavorite((String?, String?) par) {
+  Future<void> removeFavorite((int, String?, String?) par) async {
+    var filePath = par.$2;
+    if (filePath != null) {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
     _favorites.remove(par);
+    
     _saveFavorites();
     notifyListeners();
   }

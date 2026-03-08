@@ -30,7 +30,7 @@ class FoldersPage extends StatelessWidget {
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                color: _kBrown.withOpacity(0.06),
+                color: _kBrown.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.folder_open_rounded,
@@ -51,7 +51,7 @@ class FoldersPage extends StatelessWidget {
               'Tap + to create your first folder',
               style: TextStyle(
                 fontSize: 14,
-                color: _kBrown.withOpacity(0.45),
+                color: _kBrown.withValues(alpha: 0.45),
               ),
             ),
           ],
@@ -74,7 +74,7 @@ class FoldersPage extends StatelessWidget {
             color: Colors.transparent,
             elevation: elevation,
             borderRadius: BorderRadius.circular(16),
-            shadowColor: _kBrown.withOpacity(0.25),
+            shadowColor: _kBrown.withValues(alpha: 0.25),
             child: child,
           );
         },
@@ -172,7 +172,7 @@ class _FolderCard extends StatelessWidget {
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        color: stripeColor.withOpacity(0.12),
+                        color: stripeColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(Icons.folder_rounded,

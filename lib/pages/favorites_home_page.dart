@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_underscores
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,7 @@ import 'dart:async';
 import '../models/favorites_model.dart';
 import 'favorites_page.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 class FavoritesHomePage extends StatefulWidget {
   const FavoritesHomePage({
@@ -15,6 +18,7 @@ class FavoritesHomePage extends StatefulWidget {
 
   final int folderIndex;
   @override
+  // ignore: no_logic_in_create_state
   State<FavoritesHomePage> createState() => _MyHomePageContentState(folderIndex:folderIndex);
 }
 
@@ -22,6 +26,7 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
   _MyHomePageContentState({required this.folderIndex});
 
   final int folderIndex;
+  String _searchQuery = '';
 
   Future<(String, String)?> _showTextInputDialog(BuildContext context) async {
     final nameController = TextEditingController();
@@ -123,17 +128,21 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLow,
       appBar: AppBar(
+        centerTitle: false,
+        titleSpacing: 0,
         backgroundColor: colorScheme.surface,
         title: Row(
           children: [
-            Icon(Icons.star_rounded, color: colorScheme.primary, size: 28),
+            Icon(Icons.star_rounded, color: colorScheme.primary, size: 24),
             const SizedBox(width: 8),
-            Text(
-              'Favorites',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.primary,
-                fontSize: 22,
+            Expanded(
+              child: Text(
+                'Favorites',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.primary,
+                  fontSize: 22,
+                ),
               ),
             ),
           ],
@@ -141,11 +150,15 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: _LegendRow(),
+            child: SizedBox(
+              width: 200, // adjust to taste
+              child: _SearchBar(onChanged: (q) => setState(() => _searchQuery = q),),
+            ),
           ),
         ],
       ),
-      body: FavoritesPage(folderIndex:folderIndex),
+      body: FavoritesPage(folderIndex:folderIndex,
+                          searchQuery: _searchQuery),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _onAddPressed(context),
         elevation: 4,
@@ -230,7 +243,7 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
             '${dir.path}/${name}_${DateTime.now().millisecondsSinceEpoch}.txt';
         await File(filePath).writeAsString(content);
         // ignore: use_build_context_synchronously
-        context.read<FavoritesModel>().addFavorite((this.folderIndex, filePath, name));
+        context.read<FavoritesModel>().addFavorite((folderIndex, filePath, name));
       }
     } else {
       try {
@@ -242,12 +255,20 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
           // ignore: use_build_context_synchronously
           String? customName = await _showNameDialog(context);
           if (customName != null && customName.isNotEmpty) {
+            
+            final sourceFile = File(filePath!);
+            if (!await sourceFile.exists()) return;
+
+            final appDir = await getApplicationDocumentsDirectory();
+            final destPath = path.join(appDir.path, fileName);
+            await sourceFile.copy(destPath);
+
             // ignore: use_build_context_synchronously
             context
                 .read<FavoritesModel>()
-                .addFavorite((this.folderIndex, filePath, customName));
+                .addFavorite((folderIndex, destPath, customName));
             debugPrint(
-                'Selected file: $fileName at $filePath with name: $customName');
+                'Selected file: $fileName at $destPath with name: $customName');
           }
         }
       } catch (e) {
@@ -257,24 +278,64 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
   }
 }
 
-/// Small coloured dots legend shown in the app bar.
-class _LegendRow extends StatelessWidget {
+class _SearchBar extends StatefulWidget {
+  const _SearchBar({this.onChanged});
+  final ValueChanged<String>? onChanged;
+
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _dot(const Color(0xFFE53935)),
-        _dot(const Color(0xFF43A047)),
-        _dot(const Color(0xFF1E88E5)),
-      ],
-    );
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
-  Widget _dot(Color color) => Container(
-        width: 10,
-        height: 10,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 36,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Row(
+        children: [
+          const Icon(Icons.search, color: Colors.black45, size: 20),
+          const SizedBox(width: 6),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              onChanged: widget.onChanged,
+              style: const TextStyle(fontSize: 14),
+              decoration: const InputDecoration(
+                hintText: 'Search',
+                hintStyle: TextStyle(color: Colors.black38, fontSize: 14),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          ValueListenableBuilder(
+            valueListenable: _controller,
+            builder: (_, value, __) => value.text.isNotEmpty
+                ? GestureDetector(
+                    onTap: () {
+                      _controller.clear();
+                      widget.onChanged?.call('');
+                    },
+                    child: const Icon(Icons.close, color: Colors.black38, size: 18),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
 }

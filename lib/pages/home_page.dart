@@ -49,7 +49,7 @@ class _MyHomePageContentState extends State<HomePage> {
       if (folderId == null) continue;
 
       // ignore: use_build_context_synchronously
-      String? customName = await _showNameDialog(context);
+      String? customName = await _showNameDialog("file", context);
       if (customName != null && customName.isNotEmpty) {
         await FavoritesModel.addFavoriteDirectly(folderId, file.path, customName);
       }
@@ -102,7 +102,7 @@ class _MyHomePageContentState extends State<HomePage> {
     super.dispose();
   }
 
-  Future<String?> _showNameDialog(BuildContext context,
+  Future<String?> _showNameDialog(String fileOrFolder, BuildContext context,
       {String? initialName}) async {
     final TextEditingController controller =
         TextEditingController(text: initialName);
@@ -110,7 +110,7 @@ class _MyHomePageContentState extends State<HomePage> {
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(initialName == null ? 'Name this folder' : 'Rename folder'),
+        title: Text(initialName == null ? 'Name this $fileOrFolder' : 'Rename $fileOrFolder'),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         content: TextField(
           controller: controller,
@@ -175,7 +175,7 @@ class _MyHomePageContentState extends State<HomePage> {
   }
 
   Future<void> _onAddPressed(BuildContext context) async {
-     String? customName = await _showNameDialog(context);
+     String? customName = await _showNameDialog("folder", context);
           if (customName != null && customName.isNotEmpty) {
             // ignore: use_build_context_synchronously
             context

@@ -1,4 +1,4 @@
-// ignore_for_file: no_leading_underscores_for_local_identifiers
+// ignore_for_file: no_leading_underscores_for_local_identifiers, use_build_context_synchronously
 
 import 'dart:io';
 
@@ -52,15 +52,25 @@ String _typeLabel(_FileType t) => switch (t) {
 class FavoritesPage extends StatelessWidget {
   const FavoritesPage({
                         super.key,
-                        required this.folderIndex
+                        required this.folderIndex,
+                        this.searchQuery = '',
                       });
   final int folderIndex;
+  final String searchQuery;
+
   @override
   Widget build(BuildContext context) {
 
     final model = context.watch<FavoritesModel>();
 
-    if (model.favorites.isEmpty) {
+    final filtered = searchQuery.isEmpty
+        ? model.favorites
+        : model.favorites
+            .where((f) =>
+                (f.$3 ?? '').toLowerCase().contains(searchQuery.toLowerCase()))
+            .toList();
+
+    if (searchQuery.isEmpty && model.favorites.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -83,6 +93,47 @@ class FavoritesPage extends StatelessWidget {
           ],
         ),
       );
+    }
+
+    if (searchQuery.isNotEmpty && filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.star_border_rounded,
+                size: 72, color: Colors.black12),
+            const SizedBox(height: 16),
+            const Text(
+              'No matching results',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black38),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (searchQuery.isNotEmpty){
+
+      return ListView.builder(
+        padding: const EdgeInsets.only(top: 8, bottom: 96),
+        itemCount: filtered.length,
+        itemBuilder: (context, index) {
+          final (folderId, filePath, fileName) = filtered[index];
+          return _FavoriteCard(
+            key: ValueKey('$filePath$fileName$index'),
+            filePath: filePath!,
+            fileName: fileName!,
+            index: index,
+            model: model,
+            folderId: folderId,
+            showDragHandle: false,
+          );
+        },
+      );
+      
     }
 
     return ReorderableListView.builder(
@@ -119,14 +170,16 @@ class _FavoriteCard extends StatelessWidget {
     required this.fileName,
     required this.index,
     required this.model,
-    required this.folderId
+    required this.folderId,
+    this.showDragHandle = true,
   });
 
   final String filePath;
   final String fileName;
   final int index;
   final FavoritesModel model;
-  final folderId;
+  final int folderId;
+  final bool showDragHandle;
 
   @override
   Widget build(BuildContext context) {
@@ -134,109 +187,121 @@ class _FavoriteCard extends StatelessWidget {
     final color = _typeColor(type);
     final bool isEditing = model.editingIndex == index;
 
-    return Card(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Colored left stripe ──────────────────────────────
-              Container(
-                width: 6,
-                color: color,
-              ),
-
-              // ── Type icon block ──────────────────────────────────
-              Container(
-                width: 56,
-                color: color.withOpacity(0.08),
-                child: Center(
-                  child: Icon(_typeIcon(type), color: color, size: 28),
+    return Dismissible(
+      key: ValueKey(filePath),
+      // ── Swipe left to delete ──────────────────────────────────
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.endToStart) {
+          // Delete
+          model.removeFavorite((folderId, filePath, fileName));
+          return true;
+        } else {
+          // Share — handle it ourselves and cancel the dismiss
+          try {
+            await SharePlus.instance.share(ShareParams(
+              files: [XFile(filePath)],
+              subject: 'Sharing: $fileName',
+            ));
+          } catch (e) {
+            debugPrint('Error sharing: $e');
+          }
+          return false; // don't actually dismiss
+        }
+      },
+      // ── Red background when swiping left ─────────────────────
+      background: Container(
+        decoration: BoxDecoration(
+          color: Colors.blue.shade400,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: const Icon(Icons.share_rounded, color: Colors.white, size: 28),
+      ),
+      secondaryBackground: Container(
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
+      ),
+      child: Card(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ── Colored left stripe ──────────────────────────────
+                Container(
+                  width: 6,
+                  color: color,
                 ),
-              ),
 
-              // ── Content ──────────────────────────────────────────
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Name row + badge
-                      Row(
-                        children: [
-                          Expanded(child: _NameSection(
-                            fileName: fileName,
-                            filePath: filePath,
-                            index: index,
-                            model: model,
-                            isEditing: isEditing,
-                            folderId: folderId,
-                          )),
-                          const SizedBox(width: 6),
-                          _TypeBadge(type: type, color: color),
-                        ],
-                      ),
-
-                      // Preview / controls
-                      if (!isEditing) ...[
-                        const SizedBox(height: 8),
-                        _PreviewSection(
-                          filePath: filePath,
-                          fileName: fileName,
-                          index: index,
-                          model: model,
-                          type: type,
-                          color: color,
-                        ),
-                      ],
-                    ],
+                // ── Type icon block ──────────────────────────────────
+                Container(
+                  width: 56,
+                  color: color.withValues(alpha: 0.08),
+                  child: Center(
+                    child: Icon(_typeIcon(type), color: color, size: 28),
                   ),
                 ),
-              ),
 
-              // ── Action column ─────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _ActionIcon(
-                      icon: Icons.delete_outline_rounded,
-                      color: Colors.red.shade300,
-                      tooltip: 'Remove',
-                      onTap: () =>
-                          model.removeFavorite((filePath, fileName)),
+                // ── Content ──────────────────────────────────────────
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Name row + badge
+                        Row(
+                          children: [
+                            Expanded(child: _NameSection(
+                              fileName: fileName,
+                              filePath: filePath,
+                              index: index,
+                              model: model,
+                              isEditing: isEditing,
+                              folderId: folderId,
+                            )),
+                            const SizedBox(width: 6),
+                            _TypeBadge(type: type, color: color),
+                          ],
+                        ),
+
+                        // Preview / controls
+                        if (!isEditing) ...[
+                          const SizedBox(height: 8),
+                          _PreviewSection(
+                            filePath: filePath,
+                            fileName: fileName,
+                            index: index,
+                            model: model,
+                            type: type,
+                            color: color,
+                          ),
+                        ],
+                      ],
                     ),
-                    _ActionIcon(
-                      icon: Icons.share_rounded,
-                      color: Colors.blueGrey,
-                      tooltip: 'Share',
-                      onTap: () async {
-                        try {
-                          await SharePlus.instance.share(ShareParams(
-                            files: [XFile(filePath)],
-                            subject: 'Sharing: $fileName',
-                          ));
-                        } catch (e) {
-                          debugPrint('Error sharing: $e');
-                        }
-                      },
-                    ),
-                    ReorderableDragStartListener(
-                      index: index,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Icon(Icons.drag_indicator_rounded,
-                            color: Colors.black26, size: 20),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                if (showDragHandle)
+                // ── Drag handle ───────────────────────────────────────
+                  ReorderableDragStartListener(
+                    index: index,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(Icons.drag_indicator_rounded,
+                          color: Colors.black26, size: 24),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -261,7 +326,7 @@ class _NameSection extends StatelessWidget {
   final int index;
   final FavoritesModel model;
   final bool isEditing;
-  final folderId;
+  final int folderId;
 
   @override
   Widget build(BuildContext context) {
@@ -329,37 +394,6 @@ class _TypeBadge extends StatelessWidget {
   }
 }
 
-// ── Inline action icon ───────────────────────────────────────────────────────
-
-class _ActionIcon extends StatelessWidget {
-  const _ActionIcon({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-    this.tooltip = '',
-  });
-
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Icon(icon, color: color, size: 20),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Preview / controls per type ───────────────────────────────────────────────
 
 class _PreviewSection extends StatelessWidget {
@@ -407,9 +441,17 @@ class _AudioControls extends StatelessWidget {
   final FavoritesModel model;
   final Color color;
 
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isPlaying = model.current == index;
+    
+
     return Row(
       children: [
         InkWell(
@@ -444,14 +486,38 @@ class _AudioControls extends StatelessWidget {
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
               activeTrackColor: color,
-              inactiveTrackColor: color.withOpacity(0.2),
+              inactiveTrackColor: color.withValues(alpha: 0.2),
               thumbColor: color,
-              overlayColor: color.withOpacity(0.15),
+              overlayColor: color.withValues(alpha: 0.15),
             ),
             child: Slider(
               value: model.getSliderPosition(index).clamp(0.0, 1.0),
               onChanged: (v) => model.setSliderPosition(index, v),
             ),
+          ),
+        ),
+        SizedBox(
+          width: 40,
+          child: FutureBuilder<Duration>(
+            future: model.getAudioDuration(filePath),
+            builder: (context, snapshot) {
+              final totalDuration = snapshot.data ?? Duration.zero;
+              final currentPosition = Duration(
+                milliseconds: (model.getSliderPosition(index) * totalDuration.inMilliseconds).round(),
+              );
+              final timeLabel = isPlaying
+                  ? _formatDuration(currentPosition)
+                  : _formatDuration(totalDuration);
+              return Text(
+                timeLabel,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color.fromARGB(255, 90, 90, 90),
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              );
+            },
           ),
         ),
       ],
@@ -477,7 +543,7 @@ class _ImagePreview extends StatelessWidget {
           height: 60,
           width: double.infinity,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
+          errorBuilder: (_, _, _) =>
               const Icon(Icons.broken_image, color: Colors.black38),
         ),
       ),
@@ -544,7 +610,7 @@ void _showFullImage(
             child: Image.file(
               File(filePath),
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(
+              errorBuilder: (_, _, _) => const Icon(
                   Icons.broken_image,
                   color: Colors.white,
                   size: 64),
@@ -633,7 +699,6 @@ void _showTextEditor(
 
   final controller = TextEditingController(text: existing);
 
-  // ignore: use_build_context_synchronously
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
@@ -666,7 +731,6 @@ void _showTextEditor(
         FilledButton(
           onPressed: () async {
             await File(filePath).writeAsString(controller.text);
-            // ignore: use_build_context_synchronously
             Navigator.pop(context);
           },
           child: const Text('Save'),
