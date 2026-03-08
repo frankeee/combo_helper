@@ -15,13 +15,22 @@ const _kBorder = Color(0xFFEDE8E3);
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 class FoldersPage extends StatelessWidget {
-  const FoldersPage({super.key});
+  const FoldersPage({super.key, this.searchQuery = ''});
+
+  final searchQuery;
 
   @override
   Widget build(BuildContext context) {
     final model = context.watch<FoldersModel>();
 
-    if (model.folders.isEmpty) {
+    final filtered = searchQuery.isEmpty
+        ? model.folders
+        : model.folders
+            .where((f) =>
+                (f.$2 ?? '').toLowerCase().contains(searchQuery.toLowerCase()))
+            .toList();
+
+    if (searchQuery.isEmpty && model.folders.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -57,6 +66,56 @@ class FoldersPage extends StatelessWidget {
           ],
         ),
       );
+    }
+
+    if (searchQuery.isNotEmpty && filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: _kBrown.withValues(alpha: 0.06),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.folder_open_rounded,
+                  size: 40, color: _kBrown),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No matching results',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: _kBrown,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (searchQuery.isNotEmpty){
+
+      return ListView.builder(
+        padding: const EdgeInsets.only(top: 8, bottom: 96),
+        itemCount: filtered.length,
+        itemBuilder: (context, index) {
+          final (folderId, fileName) = filtered[index];
+          return _FolderCard(
+            key: ValueKey('$fileName$index'),
+            fileName: fileName!,
+            index: index,
+            model: model,
+            folderId: folderId,
+            showDragHandle: false,
+          );
+        },
+      );
+      
     }
 
     return ReorderableListView.builder(
@@ -102,12 +161,14 @@ class _FolderCard extends StatelessWidget {
     required this.fileName,
     required this.index,
     required this.model,
+    this.showDragHandle = true,
   });
 
   final int folderId;
   final String fileName;
   final int index;
   final FoldersModel model;
+  final bool showDragHandle;
 
   // Cycle through warm accent tones for the left stripe
   static const _stripeColors = [
@@ -208,14 +269,15 @@ class _FolderCard extends StatelessWidget {
                           onTap: () =>
                               model.removeFolder((folderId, fileName)),
                         ),
-                        ReorderableDragStartListener(
-                          index: index,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Icon(Icons.drag_indicator_rounded,
-                                color: Colors.black26, size: 20),
+                        if (showDragHandle)
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(Icons.drag_indicator_rounded,
+                                  color: Colors.black26, size: 20),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),

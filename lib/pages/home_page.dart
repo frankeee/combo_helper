@@ -15,6 +15,7 @@ class HomePage extends StatefulWidget {
 
 class _MyHomePageContentState extends State<HomePage> {
   late StreamSubscription _intentSub;
+  String _searchQuery = '';
   // ignore: unused_field
   List<SharedMediaFile> _pendingSharedFiles = [];
 
@@ -160,11 +161,15 @@ class _MyHomePageContentState extends State<HomePage> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 12)
+            padding: const EdgeInsets.only(right: 12),
+            child: SizedBox(
+              width: 200, // adjust to taste
+              child: _SearchBar(onChanged: (q) => setState(() => _searchQuery = q),),
+            ),
           ),
         ],
       ),
-      body: const FoldersPage(),
+      body: FoldersPage(searchQuery: _searchQuery),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _onAddPressed(context),
         elevation: 4,
@@ -186,4 +191,67 @@ class _MyHomePageContentState extends State<HomePage> {
           }
   }
 }
+
+class _SearchBar extends StatefulWidget {
+  const _SearchBar({this.onChanged});
+  final ValueChanged<String>? onChanged;
+
+  @override
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 36,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Row(
+        children: [
+          const Icon(Icons.search, color: Colors.black45, size: 20),
+          const SizedBox(width: 6),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              onChanged: widget.onChanged,
+              style: const TextStyle(fontSize: 14),
+              decoration: const InputDecoration(
+                hintText: 'Search',
+                hintStyle: TextStyle(color: Colors.black38, fontSize: 14),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          ValueListenableBuilder(
+            valueListenable: _controller,
+            builder: (_, value, __) => value.text.isNotEmpty
+                ? GestureDetector(
+                    onTap: () {
+                      _controller.clear();
+                      widget.onChanged?.call('');
+                    },
+                    child: const Icon(Icons.close, color: Colors.black38, size: 18),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
