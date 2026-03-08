@@ -1,7 +1,7 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers, use_build_context_synchronously
 
 import 'dart:io';
-
+import 'package:pdfx/pdfx.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -11,7 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 // ── Type helpers ─────────────────────────────────────────────────────────────
 
-enum _FileType { audio, image, text, other }
+enum _FileType { audio, image, text, pdf, other }
 
 _FileType _detectType(String path) {
   final lower = path.toLowerCase();
@@ -20,6 +20,7 @@ _FileType _detectType(String path) {
   if (audio.any(lower.endsWith)) return _FileType.audio;
   if (image.any(lower.endsWith)) return _FileType.image;
   if (lower.endsWith('.txt')) return _FileType.text;
+  if (lower.endsWith('.pdf')) return _FileType.pdf;
   return _FileType.other;
 }
 
@@ -28,6 +29,7 @@ Color _typeColor(_FileType t) => switch (t) {
       _FileType.audio => const Color.fromARGB(255, 214, 73, 7),
       _FileType.image => const Color.fromARGB(255, 63, 154, 235),
       _FileType.text  => const Color(0xFF43A047),
+      _FileType.pdf   => const Color.fromARGB(255, 2, 2, 2),
       _FileType.other => const Color(0xFF757575),
     };
 
@@ -36,6 +38,7 @@ IconData _typeIcon(_FileType t) => switch (t) {
       _FileType.audio => Icons.headphones_rounded,
       _FileType.image => Icons.image_rounded,
       _FileType.text  => Icons.description_rounded,
+      _FileType.pdf   => Icons.picture_as_pdf_rounded,
       _FileType.other => Icons.insert_drive_file_rounded,
     };
 
@@ -44,6 +47,7 @@ String _typeLabel(_FileType t) => switch (t) {
       _FileType.audio => 'AUDIO',
       _FileType.image => 'IMAGE',
       _FileType.text  => 'TEXT',
+      _FileType.pdf   => 'PDF',
       _FileType.other => 'FILE',
     };
 
@@ -419,6 +423,7 @@ class _PreviewSection extends StatelessWidget {
       _FileType.audio  => _AudioControls(filePath: filePath, fileName: fileName, index: index, model: model, color: color),
       _FileType.image  => _ImagePreview(filePath: filePath, fileName: fileName),
       _FileType.text   => _TextPreview(filePath: filePath, fileName: fileName),
+      _FileType.pdf   => _PdfPreview(filePath: filePath, fileName: fileName),
       _FileType.other  => const SizedBox.shrink(),
     };
   }
@@ -545,6 +550,111 @@ class _ImagePreview extends StatelessWidget {
           fit: BoxFit.cover,
           errorBuilder: (_, _, _) =>
               const Icon(Icons.broken_image, color: Colors.black38),
+        ),
+      ),
+    );
+  }
+}
+
+// ── PDF preview ───────────────────────────────────────────────────────────────
+
+class _PdfPreview extends StatelessWidget {
+  const _PdfPreview({required this.filePath, required this.fileName});
+  final String filePath;
+  final String fileName;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showPdfViewer(context, filePath, fileName),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red.shade100),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.picture_as_pdf_rounded,
+                color: Colors.red.shade700, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Tap to view PDF',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red.shade900,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _showPdfViewer(
+    BuildContext context, String filePath, String fileName) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => _PdfViewerPage(filePath: filePath, fileName: fileName),
+    ),
+  );
+}
+
+class _PdfViewerPage extends StatefulWidget {
+  const _PdfViewerPage({required this.filePath, required this.fileName});
+  final String filePath;
+  final String fileName;
+
+  @override
+  State<_PdfViewerPage> createState() => _PdfViewerPageState();
+}
+
+class _PdfViewerPageState extends State<_PdfViewerPage> {
+  late final PdfControllerPinch _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PdfControllerPinch(
+      document: PdfDocument.openFile(widget.filePath),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          widget.fileName,
+          overflow: TextOverflow.ellipsis,
+        ),
+        backgroundColor: const Color(0xFFE53935),
+        foregroundColor: Colors.white,
+      ),
+      body: PdfViewPinch(
+        controller: _controller,
+        scrollDirection: Axis.vertical,
+        builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+          options: const DefaultBuilderOptions(),
+          errorBuilder: (_, error) => Center(
+            child: Text('Error loading PDF: $error',
+                style: const TextStyle(color: Colors.red)),
+          ),
+          documentLoaderBuilder: (_) =>
+              const Center(child: CircularProgressIndicator()),
+          pageLoaderBuilder: (_) =>
+              const Center(child: CircularProgressIndicator()),
         ),
       ),
     );
