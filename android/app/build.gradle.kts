@@ -21,7 +21,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.combo_messenger"
+        applicationId = "com.fcol.fileshelf"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = 1
