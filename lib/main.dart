@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'models/folders_model.dart';
 import 'pages/home_page.dart';
 
+//Main file for the app
+
 void main() {
   runApp(const MyApp());
 }
