@@ -4,6 +4,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'dart:async';
 import '../models/folders_model.dart';
 import '../models/favorites_model.dart';
+import '../widgets/search_bar.dart';
 import 'folders_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -52,7 +53,8 @@ class _MyHomePageContentState extends State<HomePage> {
       // ignore: use_build_context_synchronously
       String? customName = await _showNameDialog("file", context);
       if (customName != null && customName.isNotEmpty) {
-        await FavoritesModel.addFavoriteDirectly(folderId, file.path, customName);
+        await FavoritesModel.addFavoriteDirectly(
+            folderId, file.path, customName);
       }
     }
     ReceiveSharingIntent.instance.reset();
@@ -65,12 +67,17 @@ class _MyHomePageContentState extends State<HomePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Choose a Folder'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
         content: model.folders.isEmpty
             ? const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('No folders yet. Create a folder first.'),
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+                child: Text(
+                  'No folders yet. Create a folder first.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF8A7A72),
+                  ),
+                ),
               )
             : SizedBox(
                 width: double.maxFinite,
@@ -80,9 +87,31 @@ class _MyHomePageContentState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     final (folderId, folderName) = model.folders[index];
                     return ListTile(
-                      leading: const Icon(Icons.folder_rounded, color: Color(0xFFD4A574)),
-                      title: Text(folderName ?? 'Unnamed'),
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0EBE6),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.folder_rounded,
+                          color: Color(0xFFD4A574),
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        folderName ?? 'Unnamed',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Color(0xFF2C221E),
+                        ),
+                      ),
                       onTap: () => Navigator.pop(context, folderId),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     );
                   },
                 ),
@@ -111,16 +140,18 @@ class _MyHomePageContentState extends State<HomePage> {
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(initialName == null ? 'Name this $fileOrFolder' : 'Rename $fileOrFolder'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+            initialName == null ? 'Name this $fileOrFolder' : 'Rename $fileOrFolder'),
         content: TextField(
           controller: controller,
           autofocus: true,
           decoration: InputDecoration(
             hintText: 'Enter name',
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            prefixIcon: const Icon(Icons.drive_file_rename_outline),
+            prefixIcon: const Icon(
+              Icons.drive_file_rename_outline_rounded,
+              color: Color(0xFFB0A49C),
+              size: 20,
+            ),
           ),
         ),
         actions: [
@@ -130,7 +161,7 @@ class _MyHomePageContentState extends State<HomePage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('OK'),
+            child: const Text('Create'),
           ),
         ],
       ),
@@ -139,32 +170,52 @@ class _MyHomePageContentState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      backgroundColor: colorScheme.surfaceContainerLow,
+      backgroundColor: const Color(0xFFF5F1EE),
       appBar: AppBar(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: const Color(0xFFF0EBE6),
+          ),
+        ),
         title: Row(
           children: [
-            Icon(Icons.folder, color: Color.fromARGB(255, 102, 94, 90), size: 28),
-            const SizedBox(width: 8),
-            Text(
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0EBE6),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.folder_rounded,
+                color: Color(0xFFD4A574),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text(
               'Folders',
               style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 102, 94, 90),
-                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2C221E),
+                fontSize: 20,
+                letterSpacing: -0.4,
               ),
             ),
           ],
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.only(right: 14),
             child: SizedBox(
-              width: 200, // adjust to taste
-              child: _SearchBar(onChanged: (q) => setState(() => _searchQuery = q),),
+              width: 190,
+              child: CustomSearchBar(
+                  onChanged: (q) => setState(() => _searchQuery = q)),
             ),
           ),
         ],
@@ -172,86 +223,18 @@ class _MyHomePageContentState extends State<HomePage> {
       body: FoldersPage(searchQuery: _searchQuery),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _onAddPressed(context),
-        elevation: 4,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_rounded, size: 26),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
   Future<void> _onAddPressed(BuildContext context) async {
-     String? customName = await _showNameDialog("folder", context);
-          if (customName != null && customName.isNotEmpty) {
-            // ignore: use_build_context_synchronously
-            context
-                .read<FoldersModel>()
-                .addFolder(customName);
-            debugPrint(
-                'Created new folder with name: $customName');
-          }
+    String? customName = await _showNameDialog("folder", context);
+    if (customName != null && customName.isNotEmpty) {
+      // ignore: use_build_context_synchronously
+      context.read<FoldersModel>().addFolder(customName);
+      debugPrint('Created new folder with name: $customName');
+    }
   }
 }
-
-class _SearchBar extends StatefulWidget {
-  const _SearchBar({this.onChanged});
-  final ValueChanged<String>? onChanged;
-
-  @override
-  State<_SearchBar> createState() => _SearchBarState();
-}
-
-class _SearchBarState extends State<_SearchBar> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 36,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Row(
-        children: [
-          const Icon(Icons.search, color: Colors.black45, size: 20),
-          const SizedBox(width: 6),
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              onChanged: widget.onChanged,
-              style: const TextStyle(fontSize: 14),
-              decoration: const InputDecoration(
-                hintText: 'Search',
-                hintStyle: TextStyle(color: Colors.black38, fontSize: 14),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          ValueListenableBuilder(
-            valueListenable: _controller,
-            builder: (_, value, __) => value.text.isNotEmpty
-                ? GestureDetector(
-                    onTap: () {
-                      _controller.clear();
-                      widget.onChanged?.call('');
-                    },
-                    child: const Icon(Icons.close, color: Colors.black38, size: 18),
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-

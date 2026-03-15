@@ -7,10 +7,23 @@ import 'favorites_home_page.dart';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 
-const _kBrown = Color(0xFF41342F);
+const _kBrown = Color(0xFF2C221E);
+const _kBrownMid = Color(0xFF8A7A72);
+const _kBrownLight = Color(0xFFB0A49C);
 const _kAccent = Color(0xFFD4A574);
-const _kSurface = Color(0xFFFAF7F4);
-const _kBorder = Color(0xFFEDE8E3);
+const _kBackground = Color(0xFFF5F1EE);
+const _kBorder = Color(0xFFEDE8E2);
+
+// ── Stripe palette ────────────────────────────────────────────────────────────
+
+const _kStripeColors = [
+  Color(0xFFD4A574), // warm gold
+  Color(0xFF8B6F5E), // mocha
+  Color(0xFF7A9E7E), // sage
+  Color(0xFF9B8BB4), // lavender
+  Color(0xFF6B9BBD), // steel blue
+  Color(0xFFBD7B7B), // dusty rose
+];
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -31,82 +44,29 @@ class FoldersPage extends StatelessWidget {
             .toList();
 
     if (searchQuery.isEmpty && model.folders.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: _kBrown.withValues(alpha: 0.06),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.folder_open_rounded,
-                  size: 40, color: _kBrown),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'No folders yet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: _kBrown,
-                letterSpacing: -0.3,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Tap + to create your first folder',
-              style: TextStyle(
-                fontSize: 14,
-                color: _kBrown.withValues(alpha: 0.45),
-              ),
-            ),
-          ],
-        ),
+      return _EmptyState(
+        icon: Icons.folder_open_rounded,
+        title: 'No folders yet',
+        subtitle: 'Tap + to create your first folder',
       );
     }
 
     if (searchQuery.isNotEmpty && filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: _kBrown.withValues(alpha: 0.06),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.folder_open_rounded,
-                  size: 40, color: _kBrown),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'No matching results',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: _kBrown,
-                letterSpacing: -0.3,
-              ),
-            ),
-          ],
-        ),
+      return _EmptyState(
+        icon: Icons.search_off_rounded,
+        title: 'No results found',
+        subtitle: 'Try a different search term',
       );
     }
 
-    if (searchQuery.isNotEmpty){
-
+    if (searchQuery.isNotEmpty) {
       return ListView.builder(
-        padding: const EdgeInsets.only(top: 8, bottom: 96),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 96),
         itemCount: filtered.length,
         itemBuilder: (context, index) {
           final (folderId, fileName) = filtered[index];
           return _FolderCard(
-            key: ValueKey('$fileName$index'),
+            key: ValueKey('search_$fileName$index'),
             fileName: fileName!,
             index: index,
             model: model,
@@ -115,25 +75,24 @@ class FoldersPage extends StatelessWidget {
           );
         },
       );
-      
     }
 
     return ReorderableListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 96),
       itemCount: model.folders.length,
       onReorder: model.reorderFolders,
       proxyDecorator: (child, index, animation) => AnimatedBuilder(
         animation: animation,
         child: child,
         builder: (context, child) {
-          final elevation = Tween<double>(begin: 0, end: 12).evaluate(
+          final elevation = Tween<double>(begin: 0, end: 10).evaluate(
             CurvedAnimation(parent: animation, curve: Curves.easeOut),
           );
           return Material(
             color: Colors.transparent,
             elevation: elevation,
-            borderRadius: BorderRadius.circular(16),
-            shadowColor: _kBrown.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(14),
+            shadowColor: _kBrown.withValues(alpha: 0.15),
             child: child,
           );
         },
@@ -141,13 +100,68 @@ class FoldersPage extends StatelessWidget {
       itemBuilder: (context, index) {
         final (folderId, fileName) = model.folders[index];
         return _FolderCard(
-          key: ValueKey('$folderId$fileName$index'),
+          key: ValueKey('folder_$folderId$index'),
           folderId: folderId,
           fileName: fileName!,
           index: index,
           model: model,
         );
       },
+    );
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: _kBrown.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 36, color: _kBrownLight),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: _kBrown,
+              letterSpacing: -0.3,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 5),
+            Text(
+              subtitle!,
+              style: const TextStyle(
+                fontSize: 13,
+                color: _kBrownLight,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -170,81 +184,71 @@ class _FolderCard extends StatelessWidget {
   final FoldersModel model;
   final bool showDragHandle;
 
-  // Cycle through warm accent tones for the left stripe
-  static const _stripeColors = [
-    Color(0xFFD4A574),
-    Color(0xFF8B6F5E),
-    Color(0xFFC4956A),
-    Color(0xFF7A9E7E),
-    Color(0xFF9B8BB4),
-    Color(0xFF6B9BBD),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final stripeColor = _stripeColors[index % _stripeColors.length];
+    final stripeColor = _kStripeColors[index % _kStripeColors.length];
     final bool isEditing = model.editingIndex == index;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         elevation: 0,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => ChangeNotifierProvider(
                   create: (_) => FavoritesModel(folderIndex: folderId),
-                  child: FavoritesHomePage(folderIndex : folderId),
+                  child: FavoritesHomePage(folderIndex: folderId),
                 ),
               ),
             );
           },
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: _kBorder, width: 1),
             ),
             child: IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Colored left stripe ────────────────────────────
+                  // ── Colored left stripe ──────────────────────────────
                   Container(
-                    width: 5,
+                    width: 4,
                     decoration: BoxDecoration(
                       color: stripeColor,
                       borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        bottomLeft: Radius.circular(16),
+                        topLeft: Radius.circular(14),
+                        bottomLeft: Radius.circular(14),
                       ),
                     ),
                   ),
 
-                  // ── Folder icon ────────────────────────────────────
+                  // ── Folder icon ──────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 14),
+                        horizontal: 12, vertical: 12),
                     child: Container(
-                      width: 42,
-                      height: 42,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: stripeColor.withValues(alpha: 0.12),
+                        color: stripeColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(Icons.folder_rounded,
-                          color: stripeColor, size: 22),
+                          color: stripeColor, size: 20),
                     ),
                   ),
 
-                  // ── Name section ───────────────────────────────────
+                  // ── Name section ─────────────────────────────────────
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       child: _NameSection(
                         fileName: fileName,
                         folderId: folderId,
@@ -255,16 +259,16 @@ class _FolderCard extends StatelessWidget {
                     ),
                   ),
 
-                  // ── Actions ────────────────────────────────────────
+                  // ── Actions ──────────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 8),
+                        horizontal: 4, vertical: 6),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _ActionIcon(
                           icon: Icons.delete_outline_rounded,
-                          color: Colors.red.shade300,
+                          color: const Color(0xFFD44A54),
                           tooltip: 'Delete',
                           onTap: () =>
                               model.removeFolder((folderId, fileName)),
@@ -274,8 +278,11 @@ class _FolderCard extends StatelessWidget {
                             index: index,
                             child: Padding(
                               padding: const EdgeInsets.all(8),
-                              child: Icon(Icons.drag_indicator_rounded,
-                                  color: Colors.black26, size: 20),
+                              child: Icon(
+                                Icons.drag_indicator_rounded,
+                                color: _kBrownLight.withValues(alpha: 0.7),
+                                size: 20,
+                              ),
                             ),
                           ),
                       ],
@@ -291,7 +298,7 @@ class _FolderCard extends StatelessWidget {
   }
 }
 
-// ── Name / rename section ────────────────────────────────────────────────────
+// ── Name / rename section ─────────────────────────────────────────────────────
 
 class _NameSection extends StatelessWidget {
   const _NameSection({
@@ -324,6 +331,7 @@ class _NameSection extends StatelessWidget {
           isDense: true,
           contentPadding: EdgeInsets.symmetric(vertical: 4),
           border: InputBorder.none,
+          filled: false,
         ),
         onSubmitted: (newName) {
           if (newName.isNotEmpty) {
@@ -352,14 +360,22 @@ class _NameSection extends StatelessWidget {
             ),
             maxLines: 1,
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 2),
+          const Text(
+            'Hold to rename',
+            style: TextStyle(
+              fontSize: 11,
+              color: _kBrownLight,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Inline action icon ───────────────────────────────────────────────────────
+// ── Inline action icon ────────────────────────────────────────────────────────
 
 class _ActionIcon extends StatelessWidget {
   const _ActionIcon({
@@ -380,10 +396,14 @@ class _ActionIcon extends StatelessWidget {
       message: tooltip,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Icon(icon, color: color, size: 20),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 18),
         ),
       ),
     );
