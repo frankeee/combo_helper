@@ -27,6 +27,7 @@ dependencies:
   pdfx: ^2.9.2
   audioplayers_platform_interface: ^7.1.1
   plugin_platform_interface: ^2.1.8
+  video_player: ^2.11.1
 
 dev_dependencies:
   flutter_test:

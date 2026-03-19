@@ -37,6 +37,32 @@ class FoldersModel extends ChangeNotifier {
     }
   }
 
+  Future<List<String>> getFilePathsFromFolder(int targetFolderId) async {
+
+    List<String> result = [];
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? favoritesJson = prefs.getString('favorites');
+
+      if (favoritesJson != null) {
+        final List<dynamic> decoded = jsonDecode(favoritesJson);
+
+        for (var item in decoded) {
+          if (item['folderId'] == targetFolderId) {
+            final filePath = item['path'] as String?;
+            if (filePath != null) {
+              result.add(filePath);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting folder files: $e');
+    }
+    
+    return result;
+  }
 
   Future<void> _saveFolders() async {
     try {

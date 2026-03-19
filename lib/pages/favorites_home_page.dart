@@ -1,4 +1,4 @@
-// ignore_for_file: unnecessary_underscores
+// ignore_for_file: unnecessary_underscores, no_logic_in_create_state
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -20,7 +20,6 @@ class FavoritesHomePage extends StatefulWidget {
   final int folderIndex;
 
   @override
-  // ignore: no_logic_in_create_state
   State<FavoritesHomePage> createState() =>
       _MyHomePageContentState(folderIndex: folderIndex);
 }
@@ -30,6 +29,30 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
 
   final int folderIndex;
   String _searchQuery = '';
+  
+
+String removeExtension(String fileName){
+
+
+  int i = fileName.length - 1;
+
+  while (0 <= i)
+  {
+    if (fileName[i] == ".")
+    {
+      break;
+    }
+
+    i--;
+  }
+
+  if (i == -1)
+  {
+    return fileName;
+  }
+
+  return fileName.substring(0,i);
+}
 
   Future<(String, String)?> _showTextInputDialog(BuildContext context) async {
     final nameController = TextEditingController();
@@ -93,7 +116,7 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
     );
   }
 
-  Future<String?> _showNameDialog(BuildContext context,
+  /*Future<String?> _showNameDialog(BuildContext context,
       {String? initialName}) async {
     final TextEditingController controller =
         TextEditingController(text: initialName);
@@ -127,7 +150,7 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
         ],
       ),
     );
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +178,7 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
-                Icons.star_rounded,
+                Icons.attach_file_rounded,
                 color: Color(0xFFD4A574),
                 size: 18,
               ),
@@ -280,8 +303,8 @@ class _MyHomePageContentState extends State<FavoritesHomePage> {
           String? filePath = result.files.single.path;
           String? fileName = result.files.single.name;
           // ignore: use_build_context_synchronously
-          String? customName = await _showNameDialog(context);
-          if (customName != null && customName.isNotEmpty) {
+          String customName = removeExtension(fileName);
+          if (customName.isNotEmpty) {
             final sourceFile = File(filePath!);
             if (!await sourceFile.exists()) return;
 

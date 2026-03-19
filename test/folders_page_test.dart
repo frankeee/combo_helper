@@ -108,25 +108,6 @@ void main() {
       expect(find.text('NewName'), findsOneWidget);
     });
 
-    testWidgets('delete icon is present for each folder', (tester) async {
-      final model = await buildModel(tester);
-      model.addFolder('A');
-      model.addFolder('B');
-      await tester.pumpWidget(makeTestApp(model));
-      await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.delete_outline_rounded), findsNWidgets(2));
-    });
-
-    testWidgets('tapping delete removes the folder from the model', (tester) async {
-      final model = await buildModel(tester);
-      model.addFolder('ToDelete');
-      model.addFolder('Survivor');
-      await tester.pumpWidget(makeTestApp(model));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.delete_outline_rounded).first);
-      await tester.pumpAndSettle();
-      expect(model.folders.length, equals(1));
-    });
   });
 
   // ── Search ─────────────────────────────────────────────────────────────────
@@ -152,12 +133,12 @@ void main() {
       expect(find.text('Holiday Photos'), findsOneWidget);
     });
 
-    testWidgets('shows "No matching results" when nothing matches', (tester) async {
+    testWidgets('shows "No results found" when nothing matches', (tester) async {
       final model = await buildModel(tester);
       model.addFolder('Alpha');
       await tester.pumpWidget(makeTestApp(model, searchQuery: 'zzz'));
       await tester.pumpAndSettle();
-      expect(find.text('No matching results'), findsOneWidget);
+      expect(find.text('No results found'), findsOneWidget);
     });
 
     testWidgets('shows all folders when query is empty', (tester) async {
@@ -186,7 +167,7 @@ void main() {
       await tester.pumpWidget(makeTestApp(model, searchQuery: 'zzzz'));
       await tester.pumpAndSettle();
       expect(find.text('No folders yet'), findsNothing);
-      expect(find.text('No matching results'), findsOneWidget);
+      expect(find.text('No results found'), findsOneWidget);
     });
   });
 

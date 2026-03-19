@@ -1,6 +1,7 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers, unused_element
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/folders_model.dart';
 import '../models/favorites_model.dart';
 import 'favorites_home_page.dart';
@@ -191,104 +192,153 @@ class _FolderCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        elevation: 0,
-        child: InkWell(
+      child: Dismissible(
+        key: ValueKey(folderId),
+        direction: DismissDirection.horizontal,
+        confirmDismiss: (direction) async {
+          if (direction == DismissDirection.endToStart) {
+            model.removeFolder((folderId, fileName));
+            return true;
+          } else {
+            var folderPaths = await model.getFilePathsFromFolder(folderId);
+            List<XFile> folderFiles = [];
+            for (var path in folderPaths) {
+              folderFiles.add(XFile(path));
+            }
+            try {
+              await SharePlus.instance.share(ShareParams(
+                files: folderFiles,
+                subject: 'Sharing: $fileName',
+              ));
+            } catch (e) {
+              debugPrint('Error sharing: $e');
+            }
+            return false;
+          }
+        },
+        background: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF4A8EC2),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: const Row(
+            children: [
+              Icon(Icons.share_rounded, color: Colors.white, size: 22),
+              SizedBox(width: 8),
+              Text('Share',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14)),
+            ],
+          ),
+        ),
+        secondaryBackground: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFD44A54),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('Delete',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14)),
+              SizedBox(width: 8),
+              Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
+            ],
+          ),
+        ),
+        // ── Tappable card (restored from working version) ──
+        child: Material(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChangeNotifierProvider(
-                  create: (_) => FavoritesModel(folderIndex: folderId),
-                  child: FavoritesHomePage(folderIndex: folderId),
+          elevation: 0,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChangeNotifierProvider(
+                    create: (_) => FavoritesModel(folderIndex: folderId),
+                    child: FavoritesHomePage(folderIndex: folderId),
+                  ),
                 ),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _kBorder, width: 1),
               ),
-            );
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _kBorder, width: 1),
-            ),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── Colored left stripe ──────────────────────────────
-                  Container(
-                    width: 4,
-                    decoration: BoxDecoration(
-                      color: stripeColor,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(14),
-                        bottomLeft: Radius.circular(14),
-                      ),
-                    ),
-                  ),
-
-                  // ── Folder icon ──────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    child: Container(
-                      width: 40,
-                      height: 40,
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // ── Colored left stripe ──────────────────────────────
+                    Container(
+                      width: 4,
                       decoration: BoxDecoration(
-                        color: stripeColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.folder_rounded,
-                          color: stripeColor, size: 20),
-                    ),
-                  ),
-
-                  // ── Name section ─────────────────────────────────────
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: _NameSection(
-                        fileName: fileName,
-                        folderId: folderId,
-                        index: index,
-                        model: model,
-                        isEditing: isEditing,
-                      ),
-                    ),
-                  ),
-
-                  // ── Actions ──────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 4, vertical: 6),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _ActionIcon(
-                          icon: Icons.delete_outline_rounded,
-                          color: const Color(0xFFD44A54),
-                          tooltip: 'Delete',
-                          onTap: () =>
-                              model.removeFolder((folderId, fileName)),
+                        color: stripeColor,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(14),
+                          bottomLeft: Radius.circular(14),
                         ),
-                        if (showDragHandle)
-                          ReorderableDragStartListener(
-                            index: index,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Icon(
-                                Icons.drag_indicator_rounded,
-                                color: _kBrownLight.withValues(alpha: 0.7),
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+
+                    // ── Folder icon ──────────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: stripeColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.folder_rounded,
+                            color: stripeColor, size: 20),
+                      ),
+                    ),
+
+                    // ── Name section ─────────────────────────────────────
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: _NameSection(
+                          fileName: fileName,
+                          folderId: folderId,
+                          index: index,
+                          model: model,
+                          isEditing: isEditing,
+                        ),
+                      ),
+                    ),
+
+                    // ── Drag handle ──────────────────────────────────────
+                    if (showDragHandle)
+                      ReorderableDragStartListener(
+                        index: index,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.drag_indicator_rounded,
+                            color: _kBrownLight.withValues(alpha: 0.7),
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                ),
               ),
             ),
           ),
@@ -370,41 +420,6 @@ class _NameSection extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Inline action icon ────────────────────────────────────────────────────────
-
-class _ActionIcon extends StatelessWidget {
-  const _ActionIcon({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-    this.tooltip = '',
-  });
-
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 18),
-        ),
       ),
     );
   }

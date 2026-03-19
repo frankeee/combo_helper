@@ -19,7 +19,7 @@ void main() {
   group('AppSearchBar – rendering', () {
     testWidgets('shows search icon', (tester) async {
       await tester.pumpWidget(makeApp(null));
-      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byIcon(Icons.search_rounded), findsOneWidget);
     });
 
     testWidgets('shows "Search" hint text', (tester) async {
@@ -29,14 +29,14 @@ void main() {
 
     testWidgets('clear button is hidden when field is empty', (tester) async {
       await tester.pumpWidget(makeApp(null));
-      expect(find.byIcon(Icons.close), findsNothing);
+      expect(find.byIcon(Icons.cancel_rounded), findsNothing);
     });
 
     testWidgets('clear button appears when text is entered', (tester) async {
       await tester.pumpWidget(makeApp(null));
       await tester.enterText(find.byType(TextField), 'hello');
       await tester.pump();
-      expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.byIcon(Icons.cancel_rounded), findsOneWidget);
     });
   });
 
@@ -56,7 +56,7 @@ void main() {
       await tester.pumpWidget(makeApp(calls.add));
       await tester.enterText(find.byType(TextField), 'test');
       await tester.pump();
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(Icons.cancel_rounded));
       await tester.pump();
       expect(calls.last, equals(''));
     });
@@ -65,7 +65,7 @@ void main() {
       await tester.pumpWidget(makeApp(null));
       await tester.enterText(find.byType(TextField), 'x');
       await tester.pump();
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(Icons.cancel_rounded));
       await tester.pump();
       expect(find.byIcon(Icons.close), findsNothing);
     });
@@ -83,7 +83,7 @@ void main() {
       await tester.enterText(find.byType(TextField), 'x');
       await tester.pump();
       expect(
-        () async => tester.tap(find.byIcon(Icons.close)),
+        () async => tester.tap(find.byIcon(Icons.cancel_rounded)),
         returnsNormally,
       );
     });
@@ -97,7 +97,7 @@ void main() {
       await tester.pumpWidget(makeApp((q) => latest = q));
       await tester.enterText(find.byType(TextField), 'first');
       await tester.pump();
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(Icons.cancel_rounded));
       await tester.pump();
       await tester.enterText(find.byType(TextField), 'second');
       await tester.pump();

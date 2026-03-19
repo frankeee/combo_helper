@@ -1,6 +1,8 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers, use_build_context_synchronously
 
 import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/favorites_model.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 
@@ -18,16 +21,18 @@ const _kBorder = Color(0xFFEDE8E2);
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
 
-enum _FileType { audio, image, text, pdf, other }
+enum _FileType { audio, image, text, pdf, video, other }
 
 _FileType _detectType(String path) {
   final lower = path.toLowerCase();
   const audio = ['.mp3', '.wav', '.aac', '.m4a', '.ogg', '.flac', '.opus'];
   const image = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+  const video = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v', '.3gp'];  // ← new
   if (audio.any(lower.endsWith)) return _FileType.audio;
   if (image.any(lower.endsWith)) return _FileType.image;
+  if (video.any(lower.endsWith)) return _FileType.video; 
   if (lower.endsWith('.txt')) return _FileType.text;
-  if (lower.endsWith('.pdf')) return _FileType.pdf;
+  if (lower.endsWith('.pdf')) return _FileType.pdf;  
   return _FileType.other;
 }
 
@@ -37,6 +42,7 @@ Color _typeColor(_FileType t) => switch (t) {
       _FileType.image => const Color(0xFF4A8EC2),
       _FileType.text  => const Color(0xFF4CAF7D),
       _FileType.pdf   => const Color(0xFFD44A54),
+      _FileType.video => const Color(0xFF7C4DFF), 
       _FileType.other => const Color(0xFF8A8EA0),
     };
 
@@ -46,6 +52,7 @@ Color _typeBg(_FileType t) => switch (t) {
       _FileType.image => const Color(0xFFEFF5FF),
       _FileType.text  => const Color(0xFFF0FAF4),
       _FileType.pdf   => const Color(0xFFFFF0F0),
+      _FileType.video => const Color(0xFFF3EEFF),
       _FileType.other => const Color(0xFFF2F2F6),
     };
 
@@ -55,6 +62,7 @@ IconData _typeIcon(_FileType t) => switch (t) {
       _FileType.image => Icons.image_rounded,
       _FileType.text  => Icons.description_rounded,
       _FileType.pdf   => Icons.picture_as_pdf_rounded,
+      _FileType.video => Icons.videocam_rounded,
       _FileType.other => Icons.insert_drive_file_rounded,
     };
 
@@ -64,6 +72,7 @@ String _typeLabel(_FileType t) => switch (t) {
       _FileType.image => 'IMAGE',
       _FileType.text  => 'TEXT',
       _FileType.pdf   => 'PDF',
+      _FileType.video => 'VIDEO',      
       _FileType.other => 'FILE',
     };
 
@@ -92,7 +101,7 @@ class FavoritesPage extends StatelessWidget {
     if (searchQuery.isEmpty && model.favorites.isEmpty) {
       return _EmptyState(
         icon: Icons.star_border_rounded,
-        title: 'No favorites yet',
+        title: 'No files yet',
         subtitle: 'Tap + to add files or notes',
       );
     }
@@ -442,9 +451,19 @@ class _NameSection extends StatelessWidget {
           border: InputBorder.none,
           filled: false,
         ),
-        onSubmitted: (newName) {
+        onSubmitted: (newName) async {
           if (newName.isNotEmpty) {
-            model.renameFavorite((folderId, filePath, fileName), newName);
+            final sourceFile = File(filePath);
+            final appDir = await getApplicationDocumentsDirectory();
+            var extension = ".${filePath.split('.').last}";
+            final destPath = path.join(appDir.path, newName + extension);
+            await sourceFile.copy(destPath);
+            model.renameFavorite((folderId, filePath, fileName), newName, destPath);
+            final file = File(filePath);
+            if (await file.exists()) {
+              await file.delete();
+            }
+            
           }
           model.setEditingIndex(-1);
         },
@@ -532,8 +551,351 @@ class _PreviewSection extends StatelessWidget {
         _TextPreview(filePath: filePath, fileName: fileName),
       _FileType.pdf =>
         _PdfPreview(filePath: filePath, fileName: fileName),
+      _FileType.video => 
+        _VideoPreview(filePath: filePath, fileName: fileName),
       _FileType.other => const SizedBox.shrink(),
     };
+  }
+}
+
+// ── New: inline video preview card ───────────────────────────────────────────
+class _VideoPreview extends StatefulWidget {
+  const _VideoPreview({required this.filePath, required this.fileName});
+  final String filePath;
+  final String fileName;
+
+  @override
+  State<_VideoPreview> createState() => _VideoPreviewState();
+}
+
+class _VideoPreviewState extends State<_VideoPreview> {
+  late final VideoPlayerController _ctrl;
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = VideoPlayerController.file(File(widget.filePath))
+      ..initialize().then((_) {
+        if (mounted) setState(() => _ready = true);
+      });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  String _fmt(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const color = Color(0xFF7C4DFF);
+    return GestureDetector(
+      onTap: () => _showVideoPlayer(context, widget.filePath, widget.fileName),
+      child: Container(
+        width: double.infinity,
+        height: 72,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3EEFF),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.18), width: 1),
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Thumbnail from first frame
+            if (_ready)
+              SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _ctrl.value.size.width,
+                    height: _ctrl.value.size.height,
+                    child: VideoPlayer(_ctrl),
+                  ),
+                ),
+              )
+            else
+              const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF7C4DFF),
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+
+            // Dark scrim so the play button is always readable
+            Container(color: Colors.black.withValues(alpha: 0.30)),
+
+            // Duration badge — bottom-right
+            if (_ready)
+              Positioned(
+                bottom: 5,
+                right: 7,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _fmt(_ctrl.value.duration),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+
+            // Play button
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.play_arrow_rounded,
+                  color: Colors.white, size: 20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── New: full-screen video player page ───────────────────────────────────────
+void _showVideoPlayer(
+    BuildContext context, String filePath, String fileName) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) =>
+          _VideoPlayerPage(filePath: filePath, fileName: fileName),
+    ),
+  );
+}
+
+class _VideoPlayerPage extends StatefulWidget {
+  const _VideoPlayerPage({required this.filePath, required this.fileName});
+  final String filePath;
+  final String fileName;
+
+  @override
+  State<_VideoPlayerPage> createState() => _VideoPlayerPageState();
+}
+
+class _VideoPlayerPageState extends State<_VideoPlayerPage> {
+  late final VideoPlayerController _ctrl;
+  bool _initialized = false;
+  bool _showControls = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = VideoPlayerController.file(File(widget.filePath))
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() => _initialized = true);
+          _ctrl.play();
+        }
+      });
+    _ctrl.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _toggleControls() => setState(() => _showControls = !_showControls);
+
+  String _fmt(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const color = Color(0xFF7C4DFF);
+    final value = _ctrl.value;
+    final position = value.position;
+    final duration = value.duration;
+    final progress = duration.inMilliseconds > 0
+        ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          widget.fileName,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              size: 20, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: GestureDetector(
+        onTap: _toggleControls,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Video
+            if (_initialized)
+              Center(
+                child: AspectRatio(
+                  aspectRatio: value.aspectRatio,
+                  child: VideoPlayer(_ctrl),
+                ),
+              )
+            else
+              const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF7C4DFF),
+                  strokeWidth: 2.5,
+                ),
+              ),
+
+            // Overlay controls
+            if (_showControls && _initialized)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Colors.black87, Colors.transparent],
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Play / Pause centred
+                      GestureDetector(
+                        onTap: () {
+                          value.isPlaying ? _ctrl.pause() : _ctrl.play();
+                        },
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            value.isPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      // Progress row
+                      Row(
+                        children: [
+                          Text(
+                            _fmt(position),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 2.5,
+                                thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 6),
+                                overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 12),
+                                activeTrackColor: color,
+                                inactiveTrackColor:
+                                    Colors.white.withValues(alpha: 0.2),
+                                thumbColor: color,
+                                overlayColor:
+                                    color.withValues(alpha: 0.15),
+                              ),
+                              child: Slider(
+                                value: progress,
+                                onChanged: (v) {
+                                  final target = Duration(
+                                    milliseconds:
+                                        (v * duration.inMilliseconds)
+                                            .round(),
+                                  );
+                                  _ctrl.seekTo(target);
+                                },
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _fmt(duration),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

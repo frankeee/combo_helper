@@ -43,6 +43,29 @@ class _MyHomePageContentState extends State<HomePage> {
     );
   }
 
+  String removeExtension(String fileName){
+
+
+  int i = fileName.length - 1;
+
+  while (0 <= i)
+  {
+    if (fileName[i] == ".")
+    {
+      break;
+    }
+
+    i--;
+  }
+
+  if (i == -1)
+  {
+    return fileName;
+  }
+
+  return fileName.substring(0,i);
+ }
+
   Future<void> _handleSharedFiles(List<SharedMediaFile> files) async {
     for (var file in files) {
       debugPrint("Shared file path: ${file.path}");
@@ -51,8 +74,9 @@ class _MyHomePageContentState extends State<HomePage> {
       if (folderId == null) continue;
 
       // ignore: use_build_context_synchronously
-      String? customName = await _showNameDialog("file", context);
-      if (customName != null && customName.isNotEmpty) {
+      String customName = file.path.split('/').last;
+      customName = removeExtension(customName);
+      if (customName.isNotEmpty) {
         await FavoritesModel.addFavoriteDirectly(
             folderId, file.path, customName);
       }

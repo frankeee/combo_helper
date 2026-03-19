@@ -196,14 +196,14 @@ class FavoritesModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void renameFavorite((int, String?, String?) par, String newName){
+  void renameFavorite((int, String?, String?) par, String newName, String newPath){
 
     var (folderId, filePath, fileName) = par;
 
     if (filePath != null && fileName != null ){
       final index = _favorites.indexOf(par);
       if (index >= 0){
-        var newPair = (folderId, filePath, newName);
+        var newPair = (folderId, newPath, newName);
         _favorites[index] = newPair;
         _saveFavorites();
         notifyListeners();

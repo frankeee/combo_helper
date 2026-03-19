@@ -175,66 +175,65 @@ void main() {
 
   // ── renameFavorite ─────────────────────────────────────────────────────────
 
-  group('FavoritesModel – renameFavorite', () {
-    test('updates the name field', () async {
-      final model = await buildModel();
-      model.addFavorite(fav1);
-      model.renameFavorite(fav1, 'Renamed Song');
-      expect(model.favorites.first.$3, equals('Renamed Song'));
-    });
-
-    test('preserves folderId and filePath after rename', () async {
-      final model = await buildModel();
-      model.addFavorite(fav1);
-      model.renameFavorite(fav1, 'NewName');
-      final renamed = model.favorites.first;
-      expect(renamed.$1, equals(fav1.$1));
-      expect(renamed.$2, equals(fav1.$2));
-    });
-
-    test('does nothing when item not found', () async {
-      final model = await buildModel();
-      model.addFavorite(fav1);
-      model.renameFavorite(fav2, 'ShouldNotAppear');
-      expect(model.favorites.first.$3, equals('Song One'));
-    });
-
-    test('does nothing when path is null', () async {
-      final model = await buildModel();
-      const nullPath = (0, null, 'NullPath');
-      model.addFavorite(nullPath);
-      model.renameFavorite(nullPath, 'NewName');
-      expect(model.favorites.first.$3, equals('NullPath'));
-    });
-
-    test('does nothing when name is null', () async {
-      final model = await buildModel();
-      const nullName = (0, '/path.mp3', null);
-      model.addFavorite(nullName);
-      model.renameFavorite(nullName, 'NewName');
-      expect(model.favorites.first.$3, isNull);
-    });
-
-    test('notifies listeners', () async {
-      final model = await buildModel();
-      model.addFavorite(fav1);
-      var count = 0;
-      model.addListener(() => count++);
-      model.renameFavorite(fav1, 'Ping');
-      expect(count, greaterThanOrEqualTo(1));
-    });
-
-    test('persists new name', () async {
-      final model = await buildModel();
-      model.addFavorite(fav1);
-      model.renameFavorite(fav1, 'Persisted Name');
-      await Future.delayed(Duration.zero);
-      final prefs = await SharedPreferences.getInstance();
-      final decoded = jsonDecode(prefs.getString('favorites')!) as List;
-      expect(decoded.any((e) => e['name'] == 'Persisted Name'), isTrue);
-    });
+ group('FavoritesModel – renameFavorite', () {
+  test('updates the name field', () async {
+    final model = await buildModel();
+    model.addFavorite(fav1);
+    model.renameFavorite(fav1, 'Renamed Song', '/new/path.mp3');
+    expect(model.favorites.first.$3, equals('Renamed Song'));
   });
 
+  test('preserves folderId and updates filePath after rename', () async {
+    final model = await buildModel();
+    model.addFavorite(fav1);
+    model.renameFavorite(fav1, 'NewName', '/new/path.mp3');
+    final renamed = model.favorites.first;
+    expect(renamed.$1, equals(fav1.$1));       // folderId unchanged
+    expect(renamed.$2, equals('/new/path.mp3')); // filePath replaced by newPath
+  });
+
+  test('does nothing when item not found', () async {
+    final model = await buildModel();
+    model.addFavorite(fav1);
+    model.renameFavorite(fav2, 'ShouldNotAppear', '/irrelevant.mp3');
+    expect(model.favorites.first.$3, equals('Song One'));
+  });
+
+  test('does nothing when path is null', () async {
+    final model = await buildModel();
+    const nullPath = (0, null, 'NullPath');
+    model.addFavorite(nullPath);
+    model.renameFavorite(nullPath, 'NewName', '/irrelevant.mp3');
+    expect(model.favorites.first.$3, equals('NullPath'));
+  });
+
+  test('does nothing when name is null', () async {
+    final model = await buildModel();
+    const nullName = (0, '/path.mp3', null);
+    model.addFavorite(nullName);
+    model.renameFavorite(nullName, 'NewName', '/irrelevant.mp3');
+    expect(model.favorites.first.$3, isNull);
+  });
+
+  test('notifies listeners', () async {
+    final model = await buildModel();
+    model.addFavorite(fav1);
+    var count = 0;
+    model.addListener(() => count++);
+    model.renameFavorite(fav1, 'Ping', '/ping.mp3');
+    expect(count, greaterThanOrEqualTo(1));
+  });
+
+  test('persists new name', () async {
+    final model = await buildModel();
+    model.addFavorite(fav1);
+    model.renameFavorite(fav1, 'Persisted Name', '/persisted.mp3');
+    await Future.delayed(Duration.zero);
+    final prefs = await SharedPreferences.getInstance();
+    final decoded = jsonDecode(prefs.getString('favorites')!) as List;
+    expect(decoded.any((e) => e['name'] == 'Persisted Name'), isTrue);
+  });
+});
   // ── reorderFavorites ───────────────────────────────────────────────────────
 
   group('FavoritesModel – reorderFavorites', () {
@@ -429,7 +428,7 @@ void main() {
     test('rename survives reload', () async {
       final model = await buildModel();
       model.addFavorite(fav1);
-      model.renameFavorite(fav1, 'AfterRename');
+      model.renameFavorite(fav1, 'AfterRename', "");
       await Future.delayed(Duration.zero);
       final reload = await buildModel();
       expect(reload.favorites.any((f) => f.$3 == 'AfterRename'), isTrue);
@@ -454,7 +453,7 @@ void main() {
     test('operations on empty model do not throw', () async {
       final model = await buildModel();
       expect(() async => await model.removeFavorite(fav1), returnsNormally);
-      expect(() => model.renameFavorite(fav1, 'X'), returnsNormally);
+      expect(() => model.renameFavorite(fav1, 'X', ""), returnsNormally);
     });
   });
 }

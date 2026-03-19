@@ -111,14 +111,14 @@ void main() {
       final model = await buildModel(tester);
       await tester.pumpWidget(makeTestApp(model));
       await tester.pumpAndSettle();
-      expect(find.text('No favorites yet'), findsOneWidget);
+      expect(find.text('No files yet'), findsOneWidget);
     });
 
-    testWidgets('shows "Tap + to get started" hint', (tester) async {
+    testWidgets('shows "Tap + to add files or notes" hint', (tester) async {
       final model = await buildModel(tester);
       await tester.pumpWidget(makeTestApp(model));
       await tester.pumpAndSettle();
-      expect(find.text('Tap + to get started'), findsOneWidget);
+      expect(find.text('Tap + to add files or notes'), findsOneWidget);
     });
 
     testWidgets('empty state disappears after adding a favorite', (tester) async {
@@ -127,7 +127,7 @@ void main() {
       await tester.pumpAndSettle();
       model.addFavorite(fav1);
       await tester.pumpAndSettle();
-      expect(find.text('No favorites yet'), findsNothing);
+      expect(find.text('No files yet'), findsNothing);
     });
   });
 
@@ -156,7 +156,7 @@ void main() {
       final model = await buildModel(tester, initial: [fav1]);
       await tester.pumpWidget(makeTestApp(model));
       await tester.pumpAndSettle();
-      model.renameFavorite(fav1, 'Renamed Track');
+      model.renameFavorite(fav1, 'Renamed Track',"");
       await tester.pumpAndSettle();
       expect(find.text('Song One'), findsNothing);
       expect(find.text('Renamed Track'), findsOneWidget);
@@ -188,7 +188,7 @@ void main() {
       final model = await buildModel(tester, initial: [fav1, fav2, fav3]);
       await tester.pumpWidget(makeTestApp(model, searchQuery: 'zzz'));
       await tester.pumpAndSettle();
-      expect(find.text('No matching results'), findsOneWidget);
+      expect(find.text('No results found'), findsOneWidget);
     });
 
     testWidgets('partial name match works', (tester) async {
@@ -209,8 +209,8 @@ void main() {
       final model = await buildModel(tester, initial: [fav1]);
       await tester.pumpWidget(makeTestApp(model, searchQuery: 'zzz'));
       await tester.pumpAndSettle();
-      expect(find.text('No favorites yet'), findsNothing);
-      expect(find.text('No matching results'), findsOneWidget);
+      expect(find.text('No files yet'), findsNothing);
+      expect(find.text('No results found'), findsOneWidget);
     });
   });
 
@@ -221,11 +221,11 @@ void main() {
       final model = await buildModel(tester);
       await tester.pumpWidget(makeTestApp(model));
       await tester.pumpAndSettle();
-      expect(find.text('No favorites yet'), findsOneWidget);
+      expect(find.text('No files yet'), findsOneWidget);
       model.addFavorite(fav1);
       await tester.pumpAndSettle();
       expect(find.text('Song One'), findsOneWidget);
-      expect(find.text('No favorites yet'), findsNothing);
+      expect(find.text('No files yet'), findsNothing);
     });
 
     
