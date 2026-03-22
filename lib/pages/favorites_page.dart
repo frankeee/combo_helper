@@ -100,7 +100,7 @@ class FavoritesPage extends StatelessWidget {
 
     if (searchQuery.isEmpty && model.favorites.isEmpty) {
       return _EmptyState(
-        icon: Icons.star_border_rounded,
+        icon: Icons.attach_file_rounded,
         title: 'No files yet',
         subtitle: 'Tap + to add files or notes',
       );

@@ -278,66 +278,69 @@ class _FolderCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: _kBorder, width: 1),
               ),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // ── Colored left stripe ──────────────────────────────
-                    Container(
-                      width: 4,
-                      decoration: BoxDecoration(
-                        color: stripeColor,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(14),
-                          bottomLeft: Radius.circular(14),
-                        ),
-                      ),
-                    ),
-
-                    // ── Folder icon ──────────────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                      child: Container(
-                        width: 40,
-                        height: 40,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 90), 
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // ── Colored left stripe ──────────────────────────────
+                      Container(
+                        width: 4,
                         decoration: BoxDecoration(
-                          color: stripeColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(Icons.folder_rounded,
-                            color: stripeColor, size: 20),
-                      ),
-                    ),
-
-                    // ── Name section ─────────────────────────────────────
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: _NameSection(
-                          fileName: fileName,
-                          folderId: folderId,
-                          index: index,
-                          model: model,
-                          isEditing: isEditing,
-                        ),
-                      ),
-                    ),
-
-                    // ── Drag handle ──────────────────────────────────────
-                    if (showDragHandle)
-                      ReorderableDragStartListener(
-                        index: index,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Icon(
-                            Icons.drag_indicator_rounded,
-                            color: _kBrownLight.withValues(alpha: 0.7),
-                            size: 20,
+                          color: stripeColor,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(14),
+                            bottomLeft: Radius.circular(14),
                           ),
                         ),
                       ),
-                    ],
+                
+                      // ── Folder icon ──────────────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: stripeColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.folder_rounded,
+                              color: stripeColor, size: 20),
+                        ),
+                      ),
+                
+                      // ── Name section ─────────────────────────────────────
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: _NameSection(
+                            fileName: fileName,
+                            folderId: folderId,
+                            index: index,
+                            model: model,
+                            isEditing: isEditing,
+                          ),
+                        ),
+                      ),
+                
+                      // ── Drag handle ──────────────────────────────────────
+                      if (showDragHandle)
+                        ReorderableDragStartListener(
+                          index: index,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.drag_indicator_rounded,
+                              color: _kBrownLight.withValues(alpha: 0.7),
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                  ),
                 ),
               ),
             ),
@@ -403,7 +406,7 @@ class _NameSection extends StatelessWidget {
             fileName,
             style: const TextStyle(
               fontWeight: FontWeight.w700,
-              fontSize: 15,
+              fontSize: 20,
               color: _kBrown,
               letterSpacing: -0.2,
               overflow: TextOverflow.ellipsis,
@@ -414,7 +417,7 @@ class _NameSection extends StatelessWidget {
           const Text(
             'Hold to rename',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               color: _kBrownLight,
               fontWeight: FontWeight.w400,
             ),

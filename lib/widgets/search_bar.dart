@@ -33,7 +33,7 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
-      height: 36,
+      height: 40,
       decoration: BoxDecoration(
         color: _hasFocus ? Colors.white : const Color(0xFFF0EBE6),
         borderRadius: BorderRadius.circular(10),
@@ -65,7 +65,7 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
               focusNode: _focusNode,
               onChanged: widget.onChanged,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 18,
                 color: Color(0xFF2C221E),
                 fontWeight: FontWeight.w400,
                 height: 1.2,

@@ -199,6 +199,7 @@ class _MyHomePageContentState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
+        toolbarHeight: 80,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
@@ -227,7 +228,7 @@ class _MyHomePageContentState extends State<HomePage> {
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF2C221E),
-                fontSize: 20,
+                fontSize: 26,
                 letterSpacing: -0.4,
               ),
             ),
@@ -245,12 +246,15 @@ class _MyHomePageContentState extends State<HomePage> {
         ],
       ),
       body: FoldersPage(searchQuery: _searchQuery),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _onAddPressed(context),
-        child: const Icon(Icons.add_rounded, size: 26),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 40), // adjust this value as needed
+        child: FloatingActionButton(
+          onPressed: () => _onAddPressed(context),
+          child: const Icon(Icons.add_rounded, size: 26),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
+          );
   }
 
   Future<void> _onAddPressed(BuildContext context) async {

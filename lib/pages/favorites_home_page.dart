@@ -116,42 +116,6 @@ String removeExtension(String fileName){
     );
   }
 
-  /*Future<String?> _showNameDialog(BuildContext context,
-      {String? initialName}) async {
-    final TextEditingController controller =
-        TextEditingController(text: initialName);
-
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title:
-            Text(initialName == null ? 'Name this file' : 'Rename file'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Enter name',
-            prefixIcon: Icon(
-              Icons.drive_file_rename_outline_rounded,
-              color: Color(0xFFB0A49C),
-              size: 20,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }*/
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,6 +123,7 @@ String removeExtension(String fileName){
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
+        toolbarHeight: 80,
         iconTheme: const IconThemeData(
           color: Color(0xFF2C221E),
           size: 22,
@@ -189,7 +154,7 @@ String removeExtension(String fileName){
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF2C221E),
-                fontSize: 20,
+                fontSize: 26,
                 letterSpacing: -0.4,
               ),
             ),
@@ -210,12 +175,15 @@ String removeExtension(String fileName){
         folderIndex: folderIndex,
         searchQuery: _searchQuery,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _onAddPressed(context),
-        child: const Icon(Icons.add_rounded, size: 26),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 40), // adjust this value as needed
+        child: FloatingActionButton(
+          onPressed: () => _onAddPressed(context),
+          child: const Icon(Icons.add_rounded, size: 26),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
+          );
   }
 
   Future<void> _onAddPressed(BuildContext context) async {
