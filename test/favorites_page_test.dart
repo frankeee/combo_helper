@@ -104,7 +104,7 @@ void main() {
       final model = await buildModel(tester);
       await tester.pumpWidget(makeTestApp(model));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.star_border_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.attach_file_rounded), findsOneWidget);
     });
 
     testWidgets('shows "No favorites yet" label', (tester) async {
